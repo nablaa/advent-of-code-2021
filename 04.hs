@@ -7,7 +7,7 @@ data Game = Game {
           , winningBoards :: [Board]
           } deriving (Show)
 
-data Board = Board {
+newtype Board = Board {
            boardCells :: [[Cell]]
            } deriving (Show)
 
@@ -33,8 +33,8 @@ parseBoards' [] boards = boards
 parseBoards' lines boards = parseBoards' nextBoardLines (parseBoard boardLines : boards)
         where boardLines = takeWhile isNotEmptyLine lines
               rest = dropWhile isNotEmptyLine lines
-              nextBoardLines = if rest == [] then rest else tail rest
-              isNotEmptyLine = \x -> x /= ""
+              nextBoardLines = if null rest then rest else tail rest
+              isNotEmptyLine = (/= "")
 
 parseBoard :: [String] -> Board
 parseBoard strs = Board (map (map toCell . words) strs)
@@ -57,7 +57,7 @@ markCell number (Cell value marked) | value == number = Cell value True
                                     | otherwise = Cell value marked
 
 unmarkedCells :: Board -> [Cell]
-unmarkedCells (Board cells) = filter (\cell -> marked cell == False) (concat cells)
+unmarkedCells (Board cells) = filter (not . marked) (concat cells)
 
 isWinning :: Board -> Bool
 isWinning = any isWinningLine . possibleLines
@@ -71,6 +71,7 @@ playRound (Game (x:xs) _ boards boardsWon) = Game xs x newInProgressBoards (boar
         where newBoards = map (markMatchingCell x) boards
               newWinningBoards = filter isWinning newBoards
               newInProgressBoards = filter (not . isWinning) newBoards
+playRound game = undefined
 
 playUntilWinner :: Game -> Game
 playUntilWinner game | null (winningBoards game) = playUntilWinner (playRound game)
@@ -83,17 +84,17 @@ playTilEnd game = playTilEnd (playRound game)
 
 score :: Game -> Integer
 score game@(Game _ lastDrawn _ boards) = sumUnmarked * lastDrawn
-        where board = head $ boards
+        where board = head boards
               sumUnmarked = sum $ map value $ unmarkedCells board
 
 scoreLastWinning :: Game -> Integer
 scoreLastWinning game@(Game _ lastDrawn _ boards) = sumUnmarked * lastDrawn
-        where board = head $ reverse $ boards
+        where board = last boards
               sumUnmarked = sum $ map value $ unmarkedCells board
 
 main = do input <- getContents
           let game = parseInput input
               finishedGame = playUntilWinner game
               endGame = playTilEnd game
-          putStrLn $ show $ score finishedGame
-          putStrLn $ show $ scoreLastWinning endGame
+          print $ score finishedGame
+          print $ scoreLastWinning endGame

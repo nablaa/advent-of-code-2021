@@ -1,4 +1,9 @@
 import Data.Maybe
+import Data.Ord
+import Data.Function
+import Data.List
+import qualified Data.Set as S
+import qualified Data.Map as M
 
 
 digitSegments :: [(Integer, [Char])]
@@ -28,6 +33,27 @@ calculate1478Counts entries = length outputWithLengths
         where outputValues = concatMap snd entries
               lengths = map (length . fromJust . (`lookup` digitSegments)) [1, 4, 7, 8]
               outputWithLengths = filter (\x -> any (\y -> length x == y) lengths) outputValues
+
+collectSets :: Int -> [String] -> [Char]
+collectSets n = nub . sort . concat . filter (\x -> length x == n)
+
+allSets :: [String] -> [(String, [Char])]
+allSets patterns = [
+          ("zeros", collectSets 6 patterns),
+          ("ones", collectSets 2 patterns),
+          ("twos", collectSets 5 patterns),
+          ("threes", collectSets 5 patterns),
+          ("fours", collectSets 4 patterns),
+          ("fives", collectSets 5 patterns),
+          ("sixes", collectSets 6 patterns),
+          ("sevens", collectSets 3 patterns),
+          ("eights", collectSets 7 patterns),
+          ("nines", collectSets 6 patterns)
+          ]
+
+printAllSets :: [(String, [Char])] -> String
+printAllSets sets = unlines $ map formatSet sets
+        where formatSet (name, elems) = name ++ "([" ++ intersperse ',' elems ++ "])."
 
 main = do input <- getContents
           let entries = parseInput input

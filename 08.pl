@@ -32,6 +32,8 @@ segments(A, B, C, D, E, F, G) :-
     sevens(Sevens),
     eights(Eights),
     nines(Nines),
+
+
     % 0
     member(A, Zeros),
     member(B, Zeros),
@@ -40,13 +42,8 @@ segments(A, B, C, D, E, F, G) :-
     member(F, Zeros),
     member(G, Zeros),
     % 1
-    \+ member(A, Ones),
-    \+ member(B, Ones),
     member(C, Ones),
-    \+ member(D, Ones),
-    \+ member(E, Ones),
     member(F, Ones),
-    \+ member(G, Ones),
     % 2
     member(A, Twos),
     member(C, Twos),
@@ -60,13 +57,10 @@ segments(A, B, C, D, E, F, G) :-
     member(F, Threes),
     member(G, Threes),
     % 4
-    \+ member(A, Fours),
     member(B, Fours),
     member(C, Fours),
     member(D, Fours),
-    \+ member(E, Fours),
     member(F, Fours),
-    \+ member(G, Fours),
     % 5
     member(A, Fives),
     member(B, Fives),
@@ -82,12 +76,8 @@ segments(A, B, C, D, E, F, G) :-
     member(G, Sixes),
     % 7
     member(A, Sevens),
-    \+ member(B, Sevens),
     member(C, Sevens),
-    \+ member(D, Sevens),
-    \+ member(E, Sevens),
     member(F, Sevens),
-    \+ member(G, Sevens),
     % 8
     member(A, Eights),
     member(B, Eights),
@@ -111,6 +101,19 @@ segments(A, B, C, D, E, F, G) :-
     member(E, [a, b, c, d, e, f, g]),
     member(F, [a, b, c, d, e, f, g]),
     member(G, [a, b, c, d, e, f, g]),
+
+    nonmember(A, Ones),
+    nonmember(B, Ones),
+    nonmember(D, Ones),
+    nonmember(E, Ones),
+    nonmember(G, Ones),
+    nonmember(A, Fours),
+    nonmember(E, Fours),
+    nonmember(G, Fours),
+    nonmember(B, Sevens),
+    nonmember(D, Sevens),
+    nonmember(E, Sevens),
+    nonmember(G, Sevens),
     A \== B,
     A \== C,
     A \== D,
@@ -132,3 +135,11 @@ segments(A, B, C, D, E, F, G) :-
     E \== F,
     E \== G,
     F \== G.
+
+nonmember(Arg,[Arg|_]) :-
+        !,
+        fail.
+nonmember(Arg,[_|Tail]) :-
+        !,
+        nonmember(Arg,Tail).
+nonmember(_,[]).

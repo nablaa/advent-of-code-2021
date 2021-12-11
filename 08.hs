@@ -51,10 +51,84 @@ allSets patterns = [
           ("nines", collectSets 6 patterns)
           ]
 
+allSetsIntegers :: [String] -> [(Integer, [Char])]
+allSetsIntegers patterns = [
+          (0, collectSets 6 patterns),
+          (1, collectSets 2 patterns),
+          (2, collectSets 5 patterns),
+          (3, collectSets 5 patterns),
+          (4, collectSets 4 patterns),
+          (5, collectSets 5 patterns),
+          (6, collectSets 6 patterns),
+          (7, collectSets 3 patterns),
+          (8, collectSets 7 patterns),
+          (9, collectSets 6 patterns)
+          ]
+
 printAllSets :: [(String, [Char])] -> String
 printAllSets sets = unlines $ map formatSet sets
         where formatSet (name, elems) = name ++ "([" ++ intersperse ',' elems ++ "])."
 
+isDigitValidForPattern :: Integer -> [Char] -> [(Integer, [Char])] -> Bool
+isDigitValidForPattern n chars sets = all (`elem` set) chars
+        where set = fromJust $ lookup n sets
+
+permutationMatches :: [String] -> [(Integer, String)] -> Bool
+permutationMatches _ [] = True
+permutationMatches u ((n,chars):xs) = (isDigitValidForPattern n chars sets) && (permutationMatches u xs)
+        where sets = allSetsIntegers u
+
+allPermutations :: [String] -> [[(Integer, String)]]
+allPermutations u = map (zip [0..]) (permutations u)
+
+matchingPermutation :: [String] -> [(Integer, String)]
+matchingPermutation u = head $ filter (permutationMatches u) (allPermutations u)
+
+
+
+
+type WireMapping = [(Char, Char)]
+
+wirePermutations :: [WireMapping]
+wirePermutations = map (zip ['a'..'g']) (permutations ['a'..'g'])
+
+isValidWireMapping :: [String] -> WireMapping -> Bool
+isValidWireMapping patterns mapping  = all (correctDigitWithMapping mapping) patterns
+
+correctDigitWithMapping :: WireMapping -> String -> Bool
+correctDigitWithMapping mapping str = isDigitValid mappedDigit
+        where mappedDigit = map mapWire str
+              mapWire c = fromJust $ lookup c mapping
+
+isDigitValid :: [Char] -> Bool
+isDigitValid chars = any ((\ d -> sort d == sort chars) . snd) digitSegments
+        where segments = map snd $ digitSegments
+
+findMapping :: [String] -> WireMapping
+findMapping patterns = head $ filter (isValidWireMapping patterns) wirePermutations
+
+applyMapping :: WireMapping -> [String] -> [Integer]
+applyMapping mapping = map (getDigit . map applyMappingStr)
+        where applyMappingStr s = fromJust $ lookup s mapping
+
+getDigit :: [Char] -> Integer
+getDigit chars = fst $ fromJust $ find (matchChars chars) digitSegments
+
+matchChars :: [Char] -> (Integer, [Char]) -> Bool
+matchChars chars (_, d) = sort d == sort chars
+
+outputValue :: [Integer] -> Integer
+outputValue = foldl (\accum x -> (accum * 10) + x) 0
+
+allOutputValues :: [([String], [String])] -> [Integer]
+allOutputValues = map outputEntry
+
+outputEntry :: ([String], [String]) -> Integer
+outputEntry (patterns, output) = outputValue $ applyMapping mapping output
+        where mapping = findMapping patterns
+
+
 main = do input <- getContents
           let entries = parseInput input
           print $ calculate1478Counts entries
+          print $ sum $ allOutputValues entries

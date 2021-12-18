@@ -34,6 +34,9 @@ elements = do
         _ <- char ']'
         return $ Pair e1 e2
 
+sumElements :: [Element] -> Element
+sumElements = foldl1 addition
+
 addition :: Element -> Element -> Element
 addition e1 e2 = fromZipper reduced
         where p = Pair e1 e2
@@ -43,7 +46,7 @@ addition e1 e2 = fromZipper reduced
 reduce :: Zipper -> Zipper
 reduce zipper = if t /= t2 then reduce splitted else splitted
         where exploded = runExplodes zipper
-              splitted = runSplits exploded
+              splitted = splitLeftMostNumber (topMost exploded)
               t = topMost zipper
               t2 = topMost splitted
 
@@ -52,12 +55,6 @@ runExplodes zipper = if t /= t2 then runExplodes exploded else exploded
         where exploded = explodeLeftmostPair (topMost zipper)
               t = topMost zipper
               t2 = topMost exploded
-
-runSplits :: Zipper -> Zipper
-runSplits zipper = if t /= t2 then runSplits splitted else splitted
-        where splitted = splitLeftMostNumber (topMost zipper)
-              t = topMost zipper
-              t2 = topMost splitted
 
 data Trail = LeftPair Element | RightPair Element
         deriving (Show, Eq)
@@ -148,4 +145,4 @@ splitNumber n = Pair (Number n1) (Number n2)
 
 main = do input <- getContents
           let snailfishes = parseInput input
-          print snailfishes
+          print $ sumElements snailfishes

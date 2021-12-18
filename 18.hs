@@ -1,6 +1,7 @@
 import Text.Parsec
 import Text.Parsec.String
 import Data.Maybe
+import Data.List
 
 data Element = Pair Element Element | Number Int
         deriving (Eq)
@@ -33,6 +34,10 @@ elements = do
         e2 <- element
         _ <- char ']'
         return $ Pair e1 e2
+
+magnitude :: Element -> Int
+magnitude (Number n) = n
+magnitude (Pair e1 e2) = 3 * magnitude e1 + 2 * magnitude e2
 
 sumElements :: [Element] -> Element
 sumElements = foldl1 addition
@@ -142,7 +147,18 @@ splitNumber n = Pair (Number n1) (Number n2)
         where n1 = n `div` 2
               n2 = ceiling (fromIntegral n / 2)
 
+allPairs :: [a] -> [(a, a)]
+allPairs elements = concat [[(elements !! x, elements !! y) | x <- [0..length elements - 1], x /= y] | y <- [0..length elements - 1]]
+
+allAdditions :: [Element] -> [Element]
+allAdditions elements = map (uncurry addition) pairs
+        where pairs = allPairs elements
+
+maxAdditionsMagnitude :: [Element] -> Int
+maxAdditionsMagnitude elements = maximum $ map magnitude $ allAdditions elements
 
 main = do input <- getContents
           let snailfishes = parseInput input
           print $ sumElements snailfishes
+          print $ magnitude $ sumElements snailfishes
+          print $ maxAdditionsMagnitude snailfishes

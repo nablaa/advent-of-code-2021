@@ -35,16 +35,29 @@ elements = do
         return $ Pair e1 e2
 
 addition :: Element -> Element -> Element
-addition = Pair
+addition e1 e2 = fromZipper reduced
+        where p = Pair e1 e2
+              zipper = toZipper p
+              reduced = reduce zipper
 
-reduce :: Element -> Element
-reduce = undefined
+reduce :: Zipper -> Zipper
+reduce zipper = if t /= t2 then reduce splitted else splitted
+        where exploded = runExplodes zipper
+              splitted = runSplits exploded
+              t = topMost zipper
+              t2 = topMost splitted
 
-hasPairNestedNDeep :: Int -> Element -> Bool
-hasPairNestedNDeep 0 (Pair (Number _) (Number _)) = True
-hasPairNestedNDeep 0 _ = False
-hasPairNestedNDeep n (Pair e1 e2) = hasPairNestedNDeep (n - 1) e1 || hasPairNestedNDeep (n - 1) e2
-hasPairNestedNDeep n (Number _) = False
+runExplodes :: Zipper -> Zipper
+runExplodes zipper = if t /= t2 then runExplodes exploded else exploded
+        where exploded = explodeLeftmostPair (topMost zipper)
+              t = topMost zipper
+              t2 = topMost exploded
+
+runSplits :: Zipper -> Zipper
+runSplits zipper = if t /= t2 then runSplits splitted else splitted
+        where splitted = splitLeftMostNumber (topMost zipper)
+              t = topMost zipper
+              t2 = topMost splitted
 
 data Trail = LeftPair Element | RightPair Element
         deriving (Show, Eq)
@@ -66,6 +79,12 @@ goUp (element, RightPair l:trail) = Just (Pair l element, trail)
 
 topMost :: Zipper -> Zipper
 topMost zipper = maybe zipper topMost (goUp zipper)
+
+fromZipper :: Zipper -> Element
+fromZipper = fst . topMost
+
+toZipper :: Element -> Zipper
+toZipper element = (element, [])
 
 walk :: Zipper -> Context -> Zipper
 walk zipper [] = zipper
@@ -110,6 +129,22 @@ traverseRightPoint n zipper@(_, (LeftPair _):trail) = addLeftmostNumber n (fromJ
 addLeftmostNumber :: Int -> Zipper -> Zipper
 addLeftmostNumber n (Number x, trail) = (Number (x + n), trail)
 addLeftmostNumber n zipper = addLeftmostNumber n (fromJust $ goLeft zipper)
+
+splitLeftMostNumber :: Zipper -> Zipper
+splitLeftMostNumber zipper@(Number n, trail) | n >= 10 = (splitNumber n, trail)
+                                             | otherwise = zipper
+splitLeftMostNumber zipper@(Pair _ _, trail) = splitted
+        where splittedLeft = splitLeftMostNumber (fromJust $ goLeft zipper)
+              t = topMost splittedLeft
+              t2 = topMost zipper
+              splittedRight = splitLeftMostNumber (fromJust $ goRight zipper)
+              splitted = if t /= t2 then splittedLeft else splittedRight
+
+splitNumber :: Int -> Element
+splitNumber n = Pair (Number n1) (Number n2)
+        where n1 = n `div` 2
+              n2 = ceiling (fromIntegral n / 2)
+
 
 main = do input <- getContents
           let snailfishes = parseInput input

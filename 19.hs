@@ -74,12 +74,11 @@ rotationAndTranslationToConnect (Scanner _ Nothing) _ = error "not connected"
 rotationAndTranslationToConnect _ (Scanner _ (Just _)) = error "already connected"
 rotationAndTranslationToConnect (Scanner detections (Just _)) (Scanner ds Nothing) = if null m2 then Nothing else Just $ head m2
         where rotatedPoints = [(matrix, map (`rotate` matrix) ds) | matrix <- rotationMatrices]
-              m = [(matrix, findMatchingTranslation detections points) | (matrix, points) <- rotatedPoints]
-              m2 = map (\(mat, Just (tr, _)) -> (tr, mat)) $ filter (\(_, mb) -> isJust mb) m
+              rotAndTra = [(matrix, findMatchingTranslation detections points) | (matrix, points) <- rotatedPoints]
+              m2 = map (\(mat, Just tr) -> (tr, mat)) $ filter (\(_, mb) -> isJust mb) rotAndTra
 
-
-findMatchingTranslation :: [Coordinates] -> [Coordinates] -> Maybe (Coordinates, [Coordinates])
-findMatchingTranslation fixed points = fmap (\t -> (t, points)) (msum matching)
+findMatchingTranslation :: [Coordinates] -> [Coordinates] -> Maybe Coordinates
+findMatchingTranslation fixed points = msum matching
         where translations = possibleTranslations fixed points
               matching = map (matchingTranslation fixed points) translations
 
@@ -100,6 +99,9 @@ translate (x1, y1, z1) (x2, y2, z2) = (x1 + x2, y1 + y2, z1 + z2)
 
 subtractCoord :: Coordinates -> Coordinates -> Coordinates
 subtractCoord (x1, y1, z1) (x2, y2, z2) = (x1 - x2, y1 - y2, z1 - z2)
+
+manhattan :: Coordinates -> Coordinates -> Int
+manhattan (x1, y1, z1) (x2, y2, z2) = abs (x2 - x1) + abs (y2 - y1) + abs (z2 - z1)
 
 rotationMatrices :: [Matrix]
 rotationMatrices = [

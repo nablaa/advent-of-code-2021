@@ -45,7 +45,14 @@ setInitialScanner scanners = scanner : tail scanners
               scanner = Scanner ds (Just (0, 0, 0))
 
 beaconCount :: [Scanner] -> Int
-beaconCount = length . nub . sort . concatMap detections . connectAllScanners
+beaconCount = length . nub . sort . concatMap detections
+
+positions :: [Scanner] -> [Coordinates]
+positions = mapMaybe position
+
+maxDistance :: [Scanner] -> Int
+maxDistance scanners = maximum $ concat [[manhattan p1 p2 | p2 <- pos, p2 /= p1] | p1 <- pos]
+        where pos = positions scanners
 
 connectAllScanners :: [Scanner] -> [Scanner]
 connectAllScanners scanners = connectAllScanners' rest [first]
@@ -230,4 +237,6 @@ rotationMatrices = [
 
 main = do input <- getContents
           let scanners = parseInput input
-          print $ beaconCount scanners
+              connected = connectAllScanners scanners
+          print $ beaconCount connected
+          print $ maxDistance connected

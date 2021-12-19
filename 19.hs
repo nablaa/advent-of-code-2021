@@ -1,7 +1,9 @@
 import Data.List
+import Data.Maybe
 import Control.Monad
 import qualified Data.Set as S
 
+type Matrix = [[Int]]
 type Coordinates = (Int, Int, Int)
 data Scanner = Scanner {
         detections :: [Coordinates],
@@ -30,7 +32,7 @@ rotations :: [Coordinates] -> [[Coordinates]]
 rotations ds = map f rotationMatrices
         where f rot = map (`rotate` rot) ds
 
-rotate :: Coordinates -> [[Int]] -> Coordinates
+rotate :: Coordinates -> Matrix -> Coordinates
 rotate (x, y, z) [[a11, a12, a13], [a21, a22, a23], [a31, a32, a33]] = (nx, ny, nz)
         where nx = a11 * x + a12 * y + a13 * z
               ny = a21 * x + a22 * y + a23 * z
@@ -42,25 +44,42 @@ setInitialScanner scanners = scanner : tail scanners
         where (Scanner ds _) = head scanners
               scanner = Scanner ds (Just (0, 0, 0))
 
-findConnectingScanner :: Scanner -> [Scanner] -> [Scanner]
-findConnectingScanner scanner [] = error "no more scanners to check"
-findConnectingScanner fixed (scanner:scanners) = case scannerConnected fixed scanner of
-                                                   Just s -> s : scanners
-                                                   Nothing -> scanner : findConnectingScanner fixed scanners
+beaconCount :: [Scanner] -> Int
+beaconCount = length . nub . sort . concatMap detections . connectAllScanners
 
-scannerConnected :: Scanner -> Scanner -> Maybe Scanner
-scannerConnected (Scanner detections _) (Scanner ds (Just _)) = error "already connected"
-scannerConnected (Scanner detections _) (Scanner ds Nothing) = case matching of
-                                                                   Just translation -> Just $ Scanner (translatedPoints translation) (Just translation)
-                                                                   Nothing -> Nothing
-        where allRotations = rotations ds
-              rotationsMatching = map (findMatchingTranslation detections) allRotations
-              matching = msum rotationsMatching
-              translatedPoints t = map (translate t) ds
+connectAllScanners :: [Scanner] -> [Scanner]
+connectAllScanners scanners = connectAllScanners' rest [first]
+        where scanners' = setInitialScanner scanners
+              first = head scanners'
+              rest = tail scanners'
+
+connectAllScanners' :: [Scanner] -> [Scanner] -> [Scanner]
+connectAllScanners' [] connected = connected
+connectAllScanners' (x:xs) connected = case connect x connected of
+                                         Just s -> connectAllScanners' xs (s:connected)
+                                         Nothing -> connectAllScanners' (xs ++ [x]) connected
+
+connect :: Scanner -> [Scanner] -> Maybe Scanner
+connect unconnected [] = Nothing
+connect unconnected (x:xs) = case rotationAndTranslationToConnect x unconnected of
+                               Just (translation, rotation) -> Just $ applyRotationTranslation unconnected translation rotation
+                               Nothing -> connect unconnected xs
+
+applyRotationTranslation :: Scanner -> Coordinates -> Matrix -> Scanner
+applyRotationTranslation (Scanner _ (Just _)) _ _ = error "already applied"
+applyRotationTranslation (Scanner detection Nothing) translation rotation = Scanner (map (translate translation . (`rotate` rotation)) detection) (Just translation)
+
+rotationAndTranslationToConnect :: Scanner -> Scanner -> Maybe (Coordinates, Matrix)
+rotationAndTranslationToConnect (Scanner _ Nothing) _ = error "not connected"
+rotationAndTranslationToConnect _ (Scanner _ (Just _)) = error "already connected"
+rotationAndTranslationToConnect (Scanner detections (Just _)) (Scanner ds Nothing) = if null m2 then Nothing else Just $ head m2
+        where rotatedPoints = [(matrix, map (`rotate` matrix) ds) | matrix <- rotationMatrices]
+              m = [(matrix, findMatchingTranslation detections points) | (matrix, points) <- rotatedPoints]
+              m2 = map (\(mat, Just (tr, _)) -> (tr, mat)) $ filter (\(_, mb) -> isJust mb) m
 
 
-findMatchingTranslation :: [Coordinates] -> [Coordinates] -> Maybe Coordinates
-findMatchingTranslation fixed points = msum matching
+findMatchingTranslation :: [Coordinates] -> [Coordinates] -> Maybe (Coordinates, [Coordinates])
+findMatchingTranslation fixed points = fmap (\t -> (t, points)) (msum matching)
         where translations = possibleTranslations fixed points
               matching = map (matchingTranslation fixed points) translations
 
@@ -82,7 +101,7 @@ translate (x1, y1, z1) (x2, y2, z2) = (x1 + x2, y1 + y2, z1 + z2)
 subtractCoord :: Coordinates -> Coordinates -> Coordinates
 subtractCoord (x1, y1, z1) (x2, y2, z2) = (x1 - x2, y1 - y2, z1 - z2)
 
-rotationMatrices :: [[[Int]]]
+rotationMatrices :: [Matrix]
 rotationMatrices = [
                         [
                                 [1, 0, 0],
@@ -209,4 +228,4 @@ rotationMatrices = [
 
 main = do input <- getContents
           let scanners = parseInput input
-          print scanners
+          print $ beaconCount scanners

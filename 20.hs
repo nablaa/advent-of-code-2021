@@ -91,3 +91,4 @@ runEnhancement pixelLookup image n = runEnhancement pixelLookup newImage (n - 1)
 main = do input <- getContents
           let (pixelLookup, image) = parseInput input
           print $ litPixels $ runEnhancement pixelLookup image 2
+          print $ litPixels $ runEnhancement pixelLookup image 50
